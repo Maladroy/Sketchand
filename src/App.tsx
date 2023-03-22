@@ -1,8 +1,10 @@
-import './App.css';
-import { Hand } from './Hand';
-
+import { Home } from './components/Home';
 function App() {
-  return <Hand></Hand>;
+  return (
+    <div>
+      <Home></Home>
+    </div>
+  );
 }
 
 export default App;
