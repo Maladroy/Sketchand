@@ -18,7 +18,7 @@ The thumb up gesture is the default gesture that does not do anything.
 
 #### Drawing lines
 
-The pinch gesture is used to draw lines on the screen. By moving the index finger and thumb together, users can create lines. The line ends when revert to default or other gesture.
+The pinch gesture is used to draw lines on the screen. By moving the index finger and thumb together, users can create lines. The line ends when revert to default or other gesture. A 750ms buffer is required when switching to this gesture to prevent tracking error.
 
 ### Installation
 
