@@ -1,4 +1,4 @@
-import { useRef, useState, useContext, useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 import { useOnDraw } from '../hooks';
 import { HandContext } from '../context';
 
