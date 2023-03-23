@@ -23,7 +23,7 @@ export const Home = () => {
   const [isPermitted, setIsPermitted] = useState(true);
   const [predictions, setPredictions] = useState<handPoseDetection.Hand[]>();
   const [toolType, setToolType] = useState('draw');
-  const [handCoords, setHandCoords] = useState({ x: 0, y: 0 });
+  const [handCoords, setHandCoords] = useState({ x: 0, y: 0, type: 'default' });
   const [loading, setLoading] = useState(true);
 
   const webcamRef = useRef(null);
@@ -103,21 +103,27 @@ export const Home = () => {
         }
       });
 
-      setHandCoords({ x: videoWidth + offset - coords.x[0], y: coords.y[0] });
+      setHandCoords({
+        x: videoWidth + offset - coords.x[0],
+        y: coords.y[0],
+        type: 'default',
+      });
 
       icon!.style.left = `${handCoords.x}px`;
       icon!.style.top = `${handCoords.y}px`;
 
       //change icon
-      if (diff(coords.x, coords.y) <= 100 && isLargest(coords.y[0], yFlag)) {
+      if (diff(coords.x, coords.y) <= 50 && isLargest(coords.y[0], yFlag)) {
         setToolType('redo');
-      } else if (diff(coords.x, coords.y) <= 100) {
+      } else if (diff(coords.x, coords.y) <= 50) {
         setToolType('draw');
       } else if (isLargest(coords.y[0], yFlag)) {
         setToolType('erase');
       } else {
         setToolType('default');
       }
+
+      setHandCoords(prevCoords => ({ ...prevCoords, type: toolType }));
 
       return true;
     });
@@ -148,21 +154,35 @@ export const Home = () => {
   return (
     <HandContext.Provider value={{ handCoords, setHandCoords }}>
       <div>
-        <div>
-          <nav className="h-screen w-20 bg-white fixed top-0 left-0 z-50">
-            <ul className="flex items-center flex-col justify-start h-1/2 gap-10">
-              <li>
-                <i className="fa-solid fa-palette fa-2xl opacity-0"></i>
-              </li>
-              <li className="p-5 hover:bg-slate-200 transition-colors hover:text-lime-600">
-                <i className="fa-solid fa-palette fa-2xl"></i>
-              </li>
-              <li></li>
-              <li></li>
-            </ul>
-          </nav>
-          <div className="h-screen w-20 bg-white fixed top-0 right-0 z-50"></div>
-        </div>
+        {!loading && (
+          <div>
+            <nav className="h-screen w-20 bg-white fixed top-0 left-0 z-50">
+              <ul className="flex items-center flex-col justify-start h-1/2 gap-10">
+                <li>
+                  <div ref={iconRef} className="z-50 absolute left-6 top-5">
+                    <i
+                      className={`${
+                        toolType === 'draw'
+                          ? 'fa-pencil'
+                          : toolType === 'erase'
+                          ? 'fa-eraser'
+                          : toolType === 'redo'
+                          ? 'fa-rotate-right'
+                          : 'fa-eye'
+                      } fa-solid fa-2xl`}
+                    ></i>
+                  </div>
+                </li>
+                <li className="p-5 hover:bg-slate-200 transition-colors mt-5 hover:text-lime-600">
+                  <i className="fa-solid fa-palette fa-2xl"></i>
+                </li>
+                <li></li>
+                <li></li>
+              </ul>
+            </nav>
+            <div className="h-screen w-20 bg-white fixed top-0 right-0 z-50"></div>
+          </div>
+        )}
 
         {loading ? (
           <Loading loading={loading} />
@@ -170,19 +190,6 @@ export const Home = () => {
           <DrawCanvas width={videoWidth} height={videoHeight}></DrawCanvas>
         )}
 
-        <div ref={iconRef} className="z-50 absolute left-6 top-5">
-          <i
-            className={`${
-              toolType === 'draw'
-                ? 'fa-pencil'
-                : toolType === 'erase'
-                ? 'fa-eraser'
-                : toolType === 'redo'
-                ? 'fa-rotate-right'
-                : 'fa-eye'
-            } fa-solid fa-2xl`}
-          ></i>
-        </div>
         <div>
           <Webcam
             className="h-screen mx-auto"
