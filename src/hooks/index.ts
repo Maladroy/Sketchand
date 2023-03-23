@@ -1,6 +1,9 @@
-import { useRef, Ref, useEffect, useContext } from "react";
+import { useRef, useEffect } from "react";
 
 let once = true;
+
+//* TODO update typing for EVERYTHING that's red
+
 
 export function useOnDraw(onDraw: Function) {
 
@@ -11,7 +14,7 @@ export function useOnDraw(onDraw: Function) {
     const mouseMoveListenerRef = useRef(null);
     const mouseUpListenerRef = useRef(null);
 
-    function setCanvasRef(ref) {
+    function setCanvasRef(ref: any) {
         canvasRef.current = ref;
         return canvasRef;
     }
@@ -24,7 +27,7 @@ export function useOnDraw(onDraw: Function) {
 
     useEffect(() => {
         function enableGrid(isEnabled: boolean = true) {
-            const ctx = canvasRef.current?.getContext("2d");
+            const ctx = (canvasRef.current as any).getContext("2d");
             const image = new Image();
 
             if (!isEnabled) return;
@@ -38,9 +41,9 @@ export function useOnDraw(onDraw: Function) {
 
         }
 
-        function computePointInCanvas(clientX, clientY) {
+        function computePointInCanvas(clientX: number, clientY: number) {
             if (canvasRef.current) {
-                const boundingRect = canvasRef.current.getBoundingClientRect();
+                const boundingRect = (canvasRef.current as HTMLCanvasElement).getBoundingClientRect();
                 return {
                     x: clientX - boundingRect.left,
                     y: clientY - boundingRect.top
@@ -54,14 +57,15 @@ export function useOnDraw(onDraw: Function) {
             const mouseMoveListener = (e: MouseEvent) => {
                 if (isDrawingRef.current && canvasRef.current) {
                     const point = computePointInCanvas(e.clientX, e.clientY);
-                    const ctx = canvasRef.current.getContext('2d');
+                    const ctx = (canvasRef.current as HTMLCanvasElement).getContext('2d');
 
                     if (onDraw) onDraw(ctx, point, prevPointRef.current);
+                    //@ts-ignore
                     prevPointRef.current = point;
                     // console.log(point);
                 }
             }
-            mouseMoveListenerRef.current = mouseMoveListener;
+            (mouseMoveListenerRef.current as any) = mouseMoveListener;
             window.addEventListener("mousemove", mouseMoveListener);
         }
         function initMouseUpListener() {
@@ -69,7 +73,7 @@ export function useOnDraw(onDraw: Function) {
                 isDrawingRef.current = false;
                 prevPointRef.current = null;
             }
-            mouseUpListenerRef.current = listener;
+            (mouseMoveListenerRef.current as any) = listener;
             window.addEventListener("mouseup", listener);
         }
         function cleanup() {

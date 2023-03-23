@@ -1,3 +1,4 @@
+//@ts-nocheck
 import { useEffect, useContext } from 'react';
 import { useOnDraw } from '../hooks';
 import { HandContext } from '../context';

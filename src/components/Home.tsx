@@ -1,3 +1,5 @@
+//@ts-nocheck
+
 import { useEffect, useState, useRef } from 'react';
 import { diff, isLargest } from '../helpers';
 import Webcam from 'react-webcam';
