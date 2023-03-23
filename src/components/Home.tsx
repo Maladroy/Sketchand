@@ -1,11 +1,10 @@
-//@ts-nocheck
-
 import { useEffect, useState, useRef } from 'react';
 import { diff, isLargest } from '../helpers';
 import Webcam from 'react-webcam';
 import { DrawCanvas } from './DrawCanvas';
 import * as handPoseDetection from '@tensorflow-models/hand-pose-detection';
 import { MediaPipeHandsModelConfig } from '@tensorflow-models/hand-pose-detection/dist/mediapipe/types';
+import * as tfjsWasm from '@tensorflow/tfjs-backend-wasm';
 import {
   HandDetector,
   SupportedModels,
@@ -13,7 +12,12 @@ import {
 import { Loading } from './Loading';
 import { HandContext } from '../context';
 
+tfjsWasm.setWasmPaths(
+  `https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-wasm@${tfjsWasm.version_wasm}/dist/`
+);
+
 // Register WebGL backend.
+import * as mpHands from '@mediapipe/hands';
 import '@tensorflow/tfjs-core';
 import '@tensorflow/tfjs-backend-webgl';
 
@@ -21,14 +25,15 @@ import '@tensorflow/tfjs-backend-webgl';
 
 export const Home = () => {
   const [model, setModel] = useState<SupportedModels>();
+  const [isBuffering, setIsBuffering] = useState<boolean>(false);
   const [detector, setDetector] = useState<HandDetector>();
-  const [isPermitted, setIsPermitted] = useState(true);
   const [predictions, setPredictions] = useState<handPoseDetection.Hand[]>();
   const [toolType, setToolType] = useState('draw');
   const [handCoords, setHandCoords] = useState({ x: 0, y: 0, type: 'default' });
   const [loading, setLoading] = useState(true);
 
   const webcamRef = useRef(null);
+  const bufferRef = useRef(null);
   const iconRef = useRef(null);
   const [videoWidth, setVideoWidth] = useState(window.innerWidth);
   const [videoHeight, setVideoHeight] = useState(window.innerHeight);
@@ -44,7 +49,7 @@ export const Home = () => {
       const detectorConfig = {
         runtime: 'mediapipe',
         modelType: 'full',
-        solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands', //node module model files are not missing some definitions
+        solutionPath: `https://cdn.jsdelivr.net/npm/@mediapipe/hands@${mpHands.VERSION}`,
       };
 
       const model = handPoseDetection.SupportedModels.MediaPipeHands;
@@ -66,22 +71,22 @@ export const Home = () => {
   // this run every 10ms, should I be worried?
   function predict(detector: HandDetector) {
     setTimeout(() => {
-      detector.estimateHands(webcamRef.current.video).then(hands => {
+      detector.estimateHands((webcamRef.current as any).video).then(hands => {
         setPredictions(hands);
         predict(detector);
       });
-    }, 5);
+    }, 10);
   }
 
   // render predictions on screen
   function renderPredictions() {
     if (!predictions || !predictions.length) return;
 
-    const icon = iconRef.current as unknown as HTMLElement;
+    const icon = iconRef.current;
     const offset = -150;
 
     predictions.every(prediction => {
-      if (prediction.score < 0.85) return false;
+      if (prediction.score <= 0.85) return false;
 
       const coords: { x: Array<number>; y: Array<number> } = { x: [], y: [] };
       // this checks for Y handCoords of other fingers, uses for eraser.
@@ -105,19 +110,32 @@ export const Home = () => {
         }
       });
 
-      setHandCoords({
-        x: videoWidth + offset - coords.x[0],
-        y: coords.y[0],
-        type: 'default',
+      // stabilize hand coords
+      setHandCoords(prev => {
+        //reduce jittering by offseting updates
+        let jitter = 4;
+        let { x, y } = prev;
+
+        if (Math.abs(prev.x - (videoWidth + offset - coords.x[0])) >= jitter) {
+          x = videoWidth + offset - coords.x[0];
+        }
+        if (Math.abs(prev.y - coords.y[0]) >= jitter) {
+          y = coords.y[0];
+        }
+        return {
+          x,
+          y,
+          type: 'default',
+        };
       });
 
-      icon!.style.left = `${handCoords.x}px`;
-      icon!.style.top = `${handCoords.y}px`;
+      (icon! as HTMLElement).style.left = `${handCoords.x}px`;
+      (icon! as HTMLElement).style.top = `${handCoords.y}px`;
 
       //change icon
-      if (diff(coords.x, coords.y) <= 50 && isLargest(coords.y[0], yFlag)) {
+      if (diff(coords.x, coords.y) <= 70 && isLargest(coords.y[0], yFlag)) {
         setToolType('redo');
-      } else if (diff(coords.x, coords.y) <= 50) {
+      } else if (diff(coords.x, coords.y) <= 70) {
         setToolType('draw');
       } else if (isLargest(coords.y[0], yFlag)) {
         setToolType('erase');
@@ -132,16 +150,15 @@ export const Home = () => {
   }
 
   // https://developer.mozilla.org/en-US/docs/Web/API/MediaStreamTrack
-  function toggleCam() {
-    const stream = webcamRef.current!.video.srcObject;
-    const tracks = stream.getTracks();
+  // function toggleCam() {
+  //   const stream = (webcamRef.current as any)!.video.srcObject;
+  //   const tracks = stream.getTracks();
 
-    tracks.forEach(track => (track.enabled = isPermitted));
-    webcamRef.current.video.srcObject = null;
-    setIsPermitted(prev => !prev);
-  }
+  //   tracks.forEach(track => (track.enabled = isPermitted));
+  //   (webcamRef.current as any).video.srcObject = null;
+  //   setIsPermitted(prev => !prev);
+  // }
 
-  // Only run when the camera has permission
   useEffect(() => {
     if (detector?.estimateHands) {
       setLoading(false);
@@ -153,7 +170,21 @@ export const Home = () => {
     renderPredictions();
   }, [predictions]);
 
+  useEffect(() => {
+    if (toolType === 'draw') {
+      const timer = setTimeout(() => {
+        setIsBuffering(true);
+      }, 750);
+
+      return () => {
+        setIsBuffering(false);
+        clearTimeout(timer);
+      };
+    }
+  }, [toolType]);
+
   return (
+    //@ts-ignore
     <HandContext.Provider value={{ handCoords, setHandCoords }}>
       <div>
         {!loading && (
@@ -173,13 +204,23 @@ export const Home = () => {
                           : 'fa-eye'
                       } fa-solid fa-2xl`}
                     ></i>
+                    {isBuffering && (
+                      <div
+                        ref={bufferRef}
+                        className="progress-bar w-1.5 h-8 bg-lime-500 absolute -top-1 -left-3"
+                      ></div>
+                    )}
                   </div>
                 </li>
-                <li className="p-5 hover:bg-slate-200 transition-colors mt-5 hover:text-lime-600">
+                <li className="p-5 hover:bg-slate-200 transition-colors mt-12 hover:text-lime-600">
                   <i className="fa-solid fa-palette fa-2xl"></i>
                 </li>
-                <li></li>
-                <li></li>
+                <li className="p-5 hover:bg-slate-200 transition-colors hover:text-lime-600">
+                  <i className="fa-solid fa-fill-drip fa-2xl"></i>
+                </li>
+                <li className="p-5 hover:bg-slate-200 transition-colors hover:text-lime-600">
+                  <i className="fa-solid fa-paintbrush fa-2xl"></i>
+                </li>
               </ul>
             </nav>
             <div className="h-screen w-20 bg-white fixed top-0 right-0 z-50"></div>
@@ -189,7 +230,11 @@ export const Home = () => {
         {loading ? (
           <Loading loading={loading} />
         ) : (
-          <DrawCanvas width={videoWidth} height={videoHeight}></DrawCanvas>
+          <DrawCanvas
+            width={videoWidth}
+            height={videoHeight}
+            isBuffering={isBuffering}
+          ></DrawCanvas>
         )}
 
         <div>

@@ -6,9 +6,11 @@ import { HandContext } from '../context';
 export const DrawCanvas = ({
   width,
   height,
+  isBuffering,
 }: {
   width: number;
   height: number;
+  isBuffering: boolean;
 }) => {
   const { setCanvasRef, onCanvasMouseDown } = useOnDraw(onDraw);
   const localCanvasRef = setCanvasRef();
@@ -67,7 +69,7 @@ export const DrawCanvas = ({
 
     localCanvasRef.current.dispatchEvent(MouseMoveEvent);
 
-    if (handCoords.type === 'draw') {
+    if (handCoords.type === 'draw' && isBuffering) {
       localCanvasRef.current.dispatchEvent(MouseDownEvent);
     }
     if (handCoords.type !== 'draw') {
