@@ -24,6 +24,8 @@ The pinch gesture is used to draw lines on the screen. By moving the index finge
 
 To use Sketchand, you will need to install Tensorflow and the necessary dependencies. This project can be run on a local machine or deployed to a web server.
 
+`npm run dev` to run the app locally
+
 ### Contributing
 
 Contributions to Sketchand are welcome. If you have any ideas for new features or improvements, feel free to submit a pull request or open an issue.
