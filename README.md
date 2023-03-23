@@ -10,7 +10,7 @@ The idea of using hand gestures to interact with technology was still fascinatin
 
 ### Usage
 
-Sketchand is easy to use, and the hand gestures are intuitive. Users can draw on the screen by moving their hand in the air, and different gestures can be used to add colors and shapes to their sketches.
+Sketchand is easy to use, and the hand gestures are intuitive. Users can draw on the screen by moving their hand in the air, and different gestures can be used to add lines to their sketches.
 
 #### Default gesture
 
@@ -18,7 +18,7 @@ The thumb up gesture is the default gesture that does not do anything.
 
 #### Drawing lines
 
-The pinch gesture is used to draw lines on the screen. By moving the index finger and thumb together, users can create lines. The line ends when revert to default or other gesture. A 750ms buffer is required when switching to this gesture to prevent tracking error.
+The pinch gesture is used to draw lines on the screen. By moving the index finger and thumb together, users can create lines. The line ends when revert to default or other gesture. A 750 millisecond buffer is required when switching to this gesture to prevent tracking error.
 
 ### Installation
 
