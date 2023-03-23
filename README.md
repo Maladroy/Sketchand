@@ -32,4 +32,4 @@ Contributions to Sketchand are welcome. If you have any ideas for new features o
 
 ### License
 
-This project is licensed under the MIT License.
+MIT
